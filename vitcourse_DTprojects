@@ -1,0 +1,162 @@
+index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Course & DT Projects | VIT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container my-4">
+  <h2 class="text-center">VIT Projects: Course & DT</h2>
+  <ul class="nav nav-pills mb-3 justify-content-center" id="project-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="course-tab" data-bs-toggle="pill" data-bs-target="#course" type="button" role="tab">Course Projects</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="dt-tab" data-bs-toggle="pill" data-bs-target="#dt" type="button" role="tab">DT Projects</button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="project-tabsContent">
+    <!-- Course Projects Tab -->
+    <div class="tab-pane fade show active" id="course" role="tabpanel">
+      <div class="card p-3">
+        <h4>Add Course Project</h4>
+        <form id="course-form">
+          <input type="text" class="form-control my-2" id="course-title" placeholder="Project Title" required>
+          <input type="text" class="form-control my-2" id="course-desc" placeholder="Description" required>
+          <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+        <hr>
+        <h5>All Course Projects</h5>
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr><th>Title</th><th>Description</th><th>Action</th></tr>
+              </thead>
+              
+          <tbody id="course-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DT Projects Tab -->
+    <div class="tab-pane fade" id="dt" role="tabpanel">
+      <div class="card p-3">
+        <h4>Add DT Project</h4>
+        <form id="dt-form">
+          <input type="text" class="form-control my-2" id="dt-title" placeholder="Project Title" required>
+          <input type="text" class="form-control my-2" id="dt-desc" placeholder="Description" required>
+          <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+        <hr>
+        <h5>All DT Projects</h5>
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr><th>Title</th><th>Description</th><th>Action</th></tr>
+              </thead>
+              
+          <tbody id="dt-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
+
+style.css
+          body {
+    background-color: #f7f9fc;
+  }
+  .card {
+    background-color: #fff;
+    border-radius: 10px;
+  }
+  
+          
+script.js
+          $(document).ready(function () {
+    // Load existing projects from localStorage
+    loadProjects("course");
+    loadProjects("dt");
+  
+    // Handle Course Project form submission
+    $("#course-form").submit(function (e) {
+      e.preventDefault();
+      const title = $("#course-title").val();
+      const desc = $("#course-desc").val();
+      saveProject("course", { title, desc });
+      this.reset();
+    });
+  
+    // Handle DT Project form submission
+    $("#dt-form").submit(function (e) {
+      e.preventDefault();
+      const title = $("#dt-title").val();
+      const desc = $("#dt-desc").val();
+      saveProject("dt", { title, desc });
+      this.reset();
+    });
+  
+    // Save project to localStorage
+    function saveProject(type, project) {
+      let data = JSON.parse(localStorage.getItem(type)) || [];
+      data.push(project);
+      localStorage.setItem(type, JSON.stringify(data));
+      loadProjects(type);
+    }
+  
+    // Load and display projects
+    function loadProjects(type) {
+      let data = JSON.parse(localStorage.getItem(type)) || [];
+      let tableId = type + "-list";
+      $("#" + tableId).empty();
+      data.forEach((project, index) => {
+        $("#" + tableId).append(
+          `<tr>
+            <td>${project.title}</td>
+            <td>${project.desc}</td>
+            <td>
+              <button class="btn btn-sm btn-danger delete-btn" data-type="${type}" data-index="${index}">
+                🗑️ Delete
+              </button>
+            </td>
+          </tr>`
+        );
+      });
+    }
+  
+    // Delete individual project
+    $(document).on("click", ".delete-btn", function () {
+      const type = $(this).data("type");
+      const index = $(this).data("index");
+      let data = JSON.parse(localStorage.getItem(type)) || [];
+      data.splice(index, 1); // Remove the project
+      localStorage.setItem(type, JSON.stringify(data));
+      loadProjects(type);
+    });
+  
+    // Optional: Clear all projects (if you add buttons for that)
+    $("#clear-course").click(function () {
+      if (confirm("Are you sure you want to delete all Course Projects?")) {
+        localStorage.removeItem("course");
+        loadProjects("course");
+      }
+    });
+  
+    $("#clear-dt").click(function () {
+      if (confirm("Are you sure you want to delete all DT Projects?")) {
+        localStorage.removeItem("dt");
+        loadProjects("dt");
+      }
+    });
+  });
+  
