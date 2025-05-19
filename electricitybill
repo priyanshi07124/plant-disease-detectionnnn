@@ -1,0 +1,168 @@
+index.html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Electricity Bill Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="card shadow-lg p-4 rounded">
+        <h2 class="mb-4">Electricity Bill Calculator</h2>
+        <form id="billForm">
+            <div class="mb-3">
+                <label class="form-label">Consumer Name</label>
+                <input type="text" class="form-control" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Consumer Email</label>
+                <input type="email" class="form-control" name="email" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Units Consumed</label>
+                <input type="number" class="form-control" name="units" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Calculate Bill</button>
+        </form>
+
+        <div id="result" class="mt-4"></div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#billForm').submit(function(e) {
+        e.preventDefault();
+
+        $.ajax({
+            url: 'calculate_bill.php',
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#result').html(`
+                        <div class="alert alert-success">
+                            <strong>Bill Details</strong><br>
+                            Name: ${response.data.name}<br>
+                            Email: ${response.data.email}<br>
+                            Units: ${response.data.units}<br>
+                            Bill Amount: ₹${response.data.bill}
+                        </div>
+                    `);
+                } else {
+                    $('#result').html(`<div class="alert alert-danger">${response.message}</div>`);
+                }
+            },
+            error: function() {
+                $('#result').html('<div class="alert alert-danger">An error occurred</div>');
+            }
+        });
+    });
+});
+</script>
+</body>
+</html>
+
+
+dp.php
+
+<?php
+$host = "localhost";
+$username = "root"; // change if using other than root
+$password = ""; // your MySQL password
+$database = "electricity_db";
+
+$conn = new mysqli($host, $username, $password, $database);
+
+if ($conn->connect_error) {
+    die(json_encode(["status" => "error", "message" => "Database connection failed: " . $conn->connect_error]));
+}
+?>
+
+
+
+calculate_bill.php
+<?php
+header("Content-Type: application/json");
+include 'db.php';
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $name = $_POST['name'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $units = $_POST['units'] ?? '';
+
+    if ($name === '' || $email === '' || $units === '') {
+        echo json_encode(["status" => "error", "message" => "All fields are required"]);
+        exit;
+    }
+
+    $units = (int)$units;
+    $bill = 0;
+
+    if ($units <= 50) {
+        $bill = $units * 3.50;
+    } elseif ($units <= 150) {
+        $bill = (50 * 3.50) + (($units - 50) * 4.00);
+    } elseif ($units <= 250) {
+        $bill = (50 * 3.50) + (100 * 4.00) + (($units - 150) * 5.20);
+    } else {
+        $bill = (50 * 3.50) + (100 * 4.00) + (100 * 5.20) + (($units - 250) * 6.50);
+    }
+
+    // Insert into consumer
+    $stmt = $conn->prepare("INSERT INTO consumer (name, email) VALUES (?, ?)");
+    $stmt->bind_param("ss", $name, $email);
+    if (!$stmt->execute()) {
+        echo json_encode(["status" => "error", "message" => "Error inserting consumer"]);
+        exit;
+    }
+    $consumer_id = $stmt->insert_id;
+
+    // Insert into billing
+    $stmt2 = $conn->prepare("INSERT INTO billing (consumer_id, units_consumed, bill_amount) VALUES (?, ?, ?)");
+    $stmt2->bind_param("iid", $consumer_id, $units, $bill);
+    if (!$stmt2->execute()) {
+        echo json_encode(["status" => "error", "message" => "Error inserting billing"]);
+        exit;
+    }
+
+    echo json_encode([
+        "status" => "success",
+        "message" => "Bill calculated successfully",
+        "data" => [
+            "name" => $name,
+            "email" => $email,
+            "units" => $units,
+            "bill" => number_format($bill, 2)
+        ]
+    ]);
+} else {
+    echo json_encode(["status" => "error", "message" => "Invalid request"]);
+}
+?>
+
+
+
+aq.sql
+CREATE DATABASE electricity_db;
+USE electricity_db;
+
+-- Consumer Table
+CREATE TABLE consumer (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL
+);
+
+-- Billing Table
+CREATE TABLE billing (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    consumer_id INT NOT NULL,
+    units_consumed INT NOT NULL,
+    bill_amount DECIMAL(10,2) NOT NULL,
+    billing_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (consumer_id) REFERENCES consumer(id)
+);
