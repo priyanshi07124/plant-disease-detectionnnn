@@ -1,0 +1,214 @@
+
+index.html
+code:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Graph Search: BFS & DFS</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="container">
+    <h1>Breadth First and Depth First Search</h1>
+
+    <div class="input-group">
+      <input type="number" id="nodeInput" placeholder="Add Node">
+      <button onclick="addNode()">Add Node</button>
+    </div>
+
+    <div class="input-group">
+      <input type="number" id="fromNode" placeholder="From">
+      <input type="number" id="toNode" placeholder="To">
+      <button onclick="addEdge()">Add Edge</button>
+    </div>
+
+    <div class="input-group">
+      <input type="number" id="startNode" placeholder="Start Node">
+      <button onclick="bfs()">BFS</button>
+      <button onclick="dfs()">DFS</button>
+    </div>
+
+    <div id="output"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
+
+script.js
+// Graph using adjacency list
+class Graph {
+  constructor() {
+    this.adjList = new Map();
+  }
+
+  addNode(node) {
+    if (!this.adjList.has(node)) {
+      this.adjList.set(node, []);
+    }
+  }
+
+  addEdge(src, dest) {
+    if (!this.adjList.has(src) || !this.adjList.has(dest)) {
+      alert("Both nodes must exist.");
+      return;
+    }
+    this.adjList.get(src).push(dest);
+    this.adjList.get(dest).push(src); // for undirected graph
+  }
+
+  bfs(start) {
+    if (!this.adjList.has(start)) return [];
+
+    const visited = new Set();
+    const queue = [start];
+    const result = [];
+
+    while (queue.length) {
+      const node = queue.shift();
+      if (!visited.has(node)) {
+        visited.add(node);
+        result.push(node);
+        const neighbors = this.adjList.get(node);
+        for (const neighbor of neighbors) {
+          if (!visited.has(neighbor)) {
+            queue.push(neighbor);
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  dfs(start) {
+    if (!this.adjList.has(start)) return [];
+
+    const visited = new Set();
+    const result = [];
+
+    const dfsHelper = (node) => {
+      visited.add(node);
+      result.push(node);
+      const neighbors = this.adjList.get(node);
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          dfsHelper(neighbor);
+        }
+      }
+    };
+
+    dfsHelper(start);
+    return result;
+  }
+}
+
+const graph = new Graph();
+
+function addNode() {
+  const val = parseInt(document.getElementById("nodeInput").value);
+  if (!isNaN(val)) {
+    graph.addNode(val);
+    document.getElementById("output").innerText = `Node ${val} added.`;
+    document.getElementById("nodeInput").value = '';
+  } else {
+    alert("Enter a valid number.");
+  }
+}
+
+function addEdge() {
+  const from = parseInt(document.getElementById("fromNode").value);
+  const to = parseInt(document.getElementById("toNode").value);
+  if (!isNaN(from) && !isNaN(to)) {
+    graph.addEdge(from, to);
+    document.getElementById("output").innerText = `Edge added between ${from} and ${to}.`;
+    document.getElementById("fromNode").value = '';
+    document.getElementById("toNode").value = '';
+  } else {
+    alert("Enter valid node numbers.");
+  }
+}
+
+function bfs() {
+  const start = parseInt(document.getElementById("startNode").value);
+  if (!isNaN(start)) {
+    const result = graph.bfs(start);
+    document.getElementById("output").innerText = `BFS from ${start}: ${result.join(", ")}`;
+    document.getElementById("startNode").value = '';
+  } else {
+    alert("Enter valid start node.");
+  }
+}
+
+function dfs() {
+  const start = parseInt(document.getElementById("startNode").value);
+  if (!isNaN(start)) {
+    const result = graph.dfs(start);
+    document.getElementById("output").innerText = `DFS from ${start}: ${result.join(", ")}`;
+    document.getElementById("startNode").value = '';
+  } else {
+    alert("Enter valid start node.");
+  }
+}
+
+
+
+
+
+style.css
+body {
+  font-family: Arial, sans-serif;
+  background-color: #eef2f5;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.container {
+  background-color: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(0,0,0,0.1);
+  width: 400px;
+  text-align: center;
+}
+
+h1 {
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+.input-group {
+  margin: 10px 0;
+}
+
+input[type="number"] {
+  padding: 8px;
+  margin: 5px;
+  width: 35%;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+button {
+  padding: 8px 10px;
+  margin: 5px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+#output {
+  margin-top: 20px;
+  font-size: 16px;
+  color: #333;
+  word-wrap: break-word;
+}
