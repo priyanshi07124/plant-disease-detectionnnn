@@ -1,0 +1,157 @@
+index.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Semester Result Calculator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+<div class="container mt-5 p-4 shadow bg-white rounded">
+    <h2 class="mb-4 text-center">VIT Semester Result</h2>
+    <form id="resultForm">
+        <div class="mb-3">
+            <label class="form-label">Student Name</label>
+            <input type="text" name="name" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Student Email</label>
+            <input type="email" name="email" class="form-control" required>
+        </div>
+
+        <h5 class="mt-4">MSE Marks (out of 30)</h5>
+        <div class="row">
+            <div class="col"><input type="number" name="mse1" class="form-control" placeholder="Subject 1" required></div>
+            <div class="col"><input type="number" name="mse2" class="form-control" placeholder="Subject 2" required></div>
+            <div class="col"><input type="number" name="mse3" class="form-control" placeholder="Subject 3" required></div>
+            <div class="col"><input type="number" name="mse4" class="form-control" placeholder="Subject 4" required></div>
+        </div>
+
+        <h5 class="mt-4">ESE Marks (out of 70)</h5>
+        <div class="row">
+            <div class="col"><input type="number" name="ese1" class="form-control" placeholder="Subject 1" required></div>
+            <div class="col"><input type="number" name="ese2" class="form-control" placeholder="Subject 2" required></div>
+            <div class="col"><input type="number" name="ese3" class="form-control" placeholder="Subject 3" required></div>
+            <div class="col"><input type="number" name="ese4" class="form-control" placeholder="Subject 4" required></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-4">Calculate Result</button>
+    </form>
+
+    <div id="resultOutput" class="mt-4 alert alert-success d-none"></div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $("#resultForm").on("submit", function(e) {
+        e.preventDefault();
+        $.ajax({
+            url: "result.php",
+            type: "POST",
+            data: $(this).serialize(),
+            success: function(data) {
+                $("#resultOutput").html(data).removeClass("d-none");
+            },
+            error: function() {
+                $("#resultOutput").html("Something went wrong.").addClass("alert-danger").removeClass("d-none");
+            }
+        });
+    });
+</script>
+</body>
+</html>
+
+
+
+
+db.php
+<?php
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db = "result_db";
+
+$conn = new mysqli($host, $user, $pass, $db);
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+?>
+
+
+
+result.php
+<?php
+$conn = new mysqli("localhost", "root", "", "result_db");
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$name  = $_POST['name'];
+$email = $_POST['email'];
+
+$mse1 = $_POST['mse1']; $mse2 = $_POST['mse2']; $mse3 = $_POST['mse3']; $mse4 = $_POST['mse4'];
+$ese1 = $_POST['ese1']; $ese2 = $_POST['ese2']; $ese3 = $_POST['ese3']; $ese4 = $_POST['ese4'];
+
+// Insert student
+$stmt = $conn->prepare("INSERT INTO students(name, email) VALUES (?, ?)");
+$stmt->bind_param("ss", $name, $email);
+$stmt->execute();
+$student_id = $stmt->insert_id;
+
+// Insert MSE
+$stmt = $conn->prepare("INSERT INTO mse(student_id, subject1, subject2, subject3, subject4) VALUES (?, ?, ?, ?, ?)");
+$stmt->bind_param("idddd", $student_id, $mse1, $mse2, $mse3, $mse4);
+$stmt->execute();
+
+// Insert ESE
+$stmt = $conn->prepare("INSERT INTO ese(student_id, subject1, subject2, subject3, subject4) VALUES (?, ?, ?, ?, ?)");
+$stmt->bind_param("idddd", $student_id, $ese1, $ese2, $ese3, $ese4);
+$stmt->execute();
+
+// Calculate total marks per subject
+$total1 = $mse1 + $ese1;
+$total2 = $mse2 + $ese2;
+$total3 = $mse3 + $ese3;
+$total4 = $mse4 + $ese4;
+$avg = ($total1 + $total2 + $total3 + $total4) / 4;
+
+echo "<strong>Result for $name:</strong><br>";
+echo "Subject 1: $total1 / 100<br>";
+echo "Subject 2: $total2 / 100<br>";
+echo "Subject 3: $total3 / 100<br>";
+echo "Subject 4: $total4 / 100<br>";
+echo "<strong>Average: $avg%</strong><br>";
+
+$conn->close();
+?>
+
+aq.sql
+CREATE DATABASE result_db;
+USE result_db;
+
+CREATE TABLE students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100)
+);
+
+CREATE TABLE mse (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT,
+    subject1 FLOAT,
+    subject2 FLOAT,
+    subject3 FLOAT,
+    subject4 FLOAT,
+    FOREIGN KEY (student_id) REFERENCES students(id)
+);
+
+CREATE TABLE ese (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT,
+    subject1 FLOAT,
+    subject2 FLOAT,
+    subject3 FLOAT,
+    subject4 FLOAT,
+    FOREIGN KEY (student_id) REFERENCES students(id)
+);
